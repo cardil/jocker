@@ -11,15 +11,19 @@ JNIEXPORT jint JNICALL Java_pl_wavesoftware_tools_jocker_jni_Conatiner_exec(
   jboolean proc,
   jboolean dev,
   jboolean tmpfs,
-  jint in,
-  jint out,
-  jint err
+  jint inFd,
+  jint outFd,
+  jint errFd
 ) {
 
-  printf("Hello from C!\n");
-  printf("in: %d\n", in);
-  printf("out: %d\n", out);
-  printf("err: %d\n", err);
+  FILE* err = fdopen(errFd, "a");
 
-	return out * err;
+  fprintf(err, "Hello from C!\n");
+  fprintf(err, "in: %d\n", inFd);
+  fprintf(err, "out: %d\n", outFd);
+  fprintf(err, "err: %d\n", errFd);
+
+  fflush(err);
+
+	return (outFd+1) * (errFd+1);
 }

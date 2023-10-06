@@ -3,7 +3,8 @@ package pl.wavesoftware.tools.jocker.jni;
 import io.vavr.collection.List;
 
 import java.io.FileDescriptor;
-import java.lang.reflect.Field;
+
+import static pl.wavesoftware.tools.jocker.jni.FileDescriptorUtil.getFd;
 
 public class Conatiner {
 
@@ -45,7 +46,7 @@ public class Conatiner {
     );
   }
 
-  public Conatiner(
+  private Conatiner(
       List<String> command,
       List<String> environment,
       String dir,
@@ -71,7 +72,7 @@ public class Conatiner {
     this.err = err;
   }
 
-  public void execute() {
+  public void execute() throws ContainerExecutionFailed {
     int retcode = exec(
         command.toJavaArray(String[]::new),
         environment.toJavaArray(String[]::new),
@@ -86,17 +87,7 @@ public class Conatiner {
         getFd(err)
     );
     if (retcode != 0) {
-      throw new IllegalStateException("Command returned non zero exit code: " + retcode);
-    }
-  }
-
-  private int getFd(FileDescriptor descriptor) {
-    try {
-      Field field = descriptor.getClass().getDeclaredField("fd");
-      field.setAccessible(true);
-      return (int) field.get(descriptor);
-    } catch (IllegalAccessException | NoSuchFieldException e) {
-      throw new IllegalStateException(e);
+      throw new ContainerExecutionFailed(retcode);
     }
   }
 
@@ -113,4 +104,89 @@ public class Conatiner {
     int out,
     int err
   );
+
+  public static final class Builder {
+    public List<String> command = List.empty();
+    public List<String> environment = List.empty();
+    public String dir = "/";
+    public List<String> binds = List.empty();
+    public List<String> roBinds = List.empty();
+    public boolean proc = true;
+    public boolean dev = true;
+    public boolean tmpfs = true;
+    public FileDescriptor in = FileDescriptor.in;
+    public FileDescriptor out = FileDescriptor.out;
+    public FileDescriptor err = FileDescriptor.err;
+
+    public Builder command(String... command) {
+      this.command = List.of(command);
+      return this;
+    }
+
+    public Builder environment(List<String> environment) {
+      this.environment = environment;
+      return this;
+    }
+
+    public Builder dir(String dir) {
+      this.dir = dir;
+      return this;
+    }
+
+    public Builder binds(List<String> binds) {
+      this.binds = binds;
+      return this;
+    }
+
+    public Builder roBinds(List<String> roBinds) {
+      this.roBinds = roBinds;
+      return this;
+    }
+
+    public Builder proc(boolean proc) {
+      this.proc = proc;
+      return this;
+    }
+
+    public Builder dev(boolean dev) {
+      this.dev = dev;
+      return this;
+    }
+
+    public Builder tmpfs(boolean tmpfs) {
+      this.tmpfs = tmpfs;
+      return this;
+    }
+
+    public Builder in(FileDescriptor in) {
+      this.in = in;
+      return this;
+    }
+
+    public Builder out(FileDescriptor out) {
+      this.out = out;
+      return this;
+    }
+
+    public Builder err(FileDescriptor err) {
+      this.err = err;
+      return this;
+    }
+
+    public Conatiner build() {
+      return new Conatiner(
+          command,
+          environment,
+          dir,
+          binds,
+          roBinds,
+          proc,
+          dev,
+          tmpfs,
+          in,
+          out,
+          err
+      );
+    }
+  }
 }
